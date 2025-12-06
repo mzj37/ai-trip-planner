@@ -40,7 +40,7 @@ const form = async (req, res) => {
   }
 };
 
-// Surprise mode
+// Surprise mode - NOW RETURNS JSON DIRECTLY
 const surprise = async (req, res) => {
   try {
     const { budget, vibe, days } = req.body;
@@ -49,8 +49,11 @@ const surprise = async (req, res) => {
       return res.status(400).json({ error: 'Budget is required' });
     }
     
-    const response = await generateSurpriseTrip(budget, vibe || 'adventurous', days || 3);
-    res.json({ response });
+    // This now returns parsed JSON object, not text
+    const itinerary = await generateSurpriseTrip(budget, vibe || 'adventurous', days || 3);
+    
+    // Return it in the same format as form mode for consistency
+    res.json({ itinerary });
   } catch (error) {
     console.error('AI surprise error:', error);
     res.status(500).json({ error: 'Failed to generate surprise trip' });
