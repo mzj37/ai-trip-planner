@@ -41,23 +41,23 @@
 ### Trip Planning - Chat Mode
 - As a user, I want to describe my trip in natural language so that I don't have to fill out forms.
 - As a user, I want to refine the AI's suggestions by chatting so that I get exactly what I want.
+- As a user, I want the AI to remember our conversation so that I can make incremental changes.
 
 ### Trip Planning - Form Mode
 - As a user, I want to fill out a simple form so that I can quickly generate a structured itinerary.
 - As a user, I want to select multiple travel styles so that my trip matches my interests.
+- As a user, I want to specify my budget so that I get realistic cost estimates.
 
 ### Trip Planning - Surprise Mode
-- As a user, I want to enter just my budget and get destination suggestions so that I can discover new places.
+- As a user, I want to enter just my budget and desired vibe so that AI can surprise me with a destination.
+- As a user, I want to regenerate a surprise trip so that I can see alternative destination options.
 
 ### Trip Management
 - As a user, I want to save generated trips so that I can access them later.
 - As a user, I want to view all my saved trips so that I can review my travel plans.
 - As a user, I want to delete trips I no longer need so that my list stays organized.
-- As a user, I want to share my trip via a link so that friends can see my itinerary.
-
-### AI Interaction
-- As a user, I want the AI to remember our conversation so that I can make incremental changes.
-- As a user, I want to regenerate a trip so that I can see alternative options.
+- As a user, I want to share my trip via a public link so that friends can see my itinerary.
+- As a user, I want to view detailed itineraries with activities, times, and costs so that I can plan my days effectively.
 
 ---
 
@@ -71,17 +71,18 @@
 │     USERS       │       │     TRIPS       │       │   ACTIVITIES    │
 ├─────────────────┤       ├─────────────────┤       ├─────────────────┤
 │ id (PK)         │───┐   │ id (PK)         │───┐   │ id (PK)         │
-│ email (unique)  │   │   │ user_id (FK)────│───┘   │ trip_id (FK)────│───┘
-│ password_hash   │   │   │ destination     │       │ day_number      │
-│ name            │   │   │ start_date      │       │ time_slot       │
-│ created_at      │   │   │ end_date        │       │ activity_name   │
-│ updated_at      │   └──→│ budget          │       │ description     │
-└─────────────────┘       │ styles          │       │ estimated_cost  │
-                          │ ai_response     │       │ location        │
-                          │ share_id        │       │ category        │
-                          │ created_at      │       │ order_index     │
-                          │ updated_at      │       │ created_at      │
-                          └─────────────────┘       └─────────────────┘
+│ email (unique)  │   │   │ userId (FK)─────│───┘   │ tripId (FK)─────│───┘
+│ password        │   │   │ destination     │       │ dayNumber       │
+│ name            │   │   │ startDate       │       │ timeSlot        │
+│ createdAt       │   │   │ endDate         │       │ activityName    │
+│ updatedAt       │   └──→│ budget          │       │ description     │
+└─────────────────┘       │ styles          │       │ estimatedCost   │
+                          │ aiResponse      │       │ location        │
+                          │ shareId         │       │ category        │
+                          │ createdAt       │       │ orderIndex      │
+                          │ updatedAt       │       │ createdAt       │
+                          └─────────────────┘       │ updatedAt       │
+                                                    └─────────────────┘
 
 RELATIONSHIPS:
 - Users → Trips: One-to-Many (one user can have many trips)
@@ -95,37 +96,50 @@ RELATIONSHIPS:
 |--------|------|-------------|
 | id | INTEGER | PRIMARY KEY, AUTO INCREMENT |
 | email | VARCHAR(255) | UNIQUE, NOT NULL |
-| password_hash | VARCHAR(255) | NOT NULL |
+| password | VARCHAR(255) | NOT NULL (hashed with bcryptjs) |
 | name | VARCHAR(100) | NOT NULL |
-| created_at | TIMESTAMP | DEFAULT NOW() |
-| updated_at | TIMESTAMP | DEFAULT NOW() |
+| createdAt | TIMESTAMP | DEFAULT NOW() |
+| updatedAt | TIMESTAMP | DEFAULT NOW() |
 
 **Trips**
 | Column | Type | Constraints |
 |--------|------|-------------|
 | id | INTEGER | PRIMARY KEY, AUTO INCREMENT |
-| user_id | INTEGER | FOREIGN KEY → Users(id), NOT NULL |
+| userId | INTEGER | FOREIGN KEY → Users(id), NOT NULL |
 | destination | VARCHAR(255) | NOT NULL |
-| start_date | DATE | |
-| end_date | DATE | |
-| budget | DECIMAL(10,2) | |
+| startDate | DATE | |
+| endDate | DATE | |
+| budget | INTEGER | |
 | styles | VARCHAR(255) | Comma-separated: "foodie,cultural" |
-| ai_response | TEXT | Full AI conversation/response |
-| share_id | VARCHAR(50) | UNIQUE, for shareable links |
-| created_at | TIMESTAMP | DEFAULT NOW() |
-| updated_at | TIMESTAMP | DEFAULT NOW() |
+| aiResponse | TEXT | Full AI conversation/response |
+| shareId | UUID | UNIQUE, for shareable links |
+| createdAt | TIMESTAMP | DEFAULT NOW() |
+| updatedAt | TIMESTAMP | DEFAULT NOW() |
 
 **Activities**
 | Column | Type | Constraints |
 |--------|------|-------------|
 | id | INTEGER | PRIMARY KEY, AUTO INCREMENT |
-| trip_id | INTEGER | FOREIGN KEY → Trips(id), NOT NULL |
-| day_number | INTEGER | NOT NULL |
-| time_slot | VARCHAR(20) | e.g., "9:00 AM" |
-| activity_name | VARCHAR(255) | NOT NULL |
+| tripId | INTEGER | FOREIGN KEY → Trips(id), NOT NULL |
+| dayNumber | INTEGER | NOT NULL |
+| timeSlot | VARCHAR(20) | e.g., "9:00 AM" |
+| activityName | VARCHAR(255) | NOT NULL |
 | description | TEXT | |
-| estimated_cost | DECIMAL(10,2) | |
+| estimatedCost | INTEGER | |
 | location | VARCHAR(255) | |
-| category | VARCHAR(50) | meal/attraction/transport |
-| order_index | INTEGER | For ordering activities |
-| created_at | TIMESTAMP | DEFAULT NOW() |
+| category | VARCHAR(50) | meal/attraction/transport/accommodation |
+| orderIndex | INTEGER | For ordering activities |
+| createdAt | TIMESTAMP | DEFAULT NOW() |
+| updatedAt | TIMESTAMP | DEFAULT NOW() |
+
+### Notes on Database Design
+
+1. **Sequelize ORM**: Uses camelCase for field names (userId, startDate) which are automatically mapped to snake_case in PostgreSQL (user_id, start_date).
+
+2. **Cascade Deletion**: When a Trip is deleted, all associated Activities are automatically deleted to maintain data integrity.
+
+3. **Share ID**: Generated using UUID to create unique, non-guessable links for sharing trips publicly without authentication.
+
+4. **Activity Ordering**: The `orderIndex` field ensures activities display in the correct order within each day, as they may not always be chronological by time slot.
+
+5. **Budget Storage**: Stored as INTEGER (cents) to avoid floating-point precision issues. Display layer handles conversion to dollars.

@@ -1,11 +1,6 @@
 # AI-Powered Trip Planner
 
-An intelligent travel planning application that uses AI to generate personalized trip itineraries based on your destination, budget, and preferences.
-
-## 🚀 Live Demo
-
-- **Frontend:** [Coming soon - will be Vercel URL]
-- **Backend:** [Coming soon - will be Render URL]
+An intelligent travel planning application that uses Google Gemini AI to generate personalized trip itineraries. Features three unique planning modes: conversational chat, structured form, and surprise destination selection.
 
 ## 👥 Team
 
@@ -14,55 +9,100 @@ An intelligent travel planning application that uses AI to generate personalized
 
 ## ✨ Features
 
-- **AI Itinerary Generation** - Enter destination, dates, budget, and travel style to get a complete trip plan
-- **User Authentication** - Secure signup and login
-- **Trip Management** - Save, view, edit, and delete your trips
-- **Activity Tracking** - See daily activities with times, locations, and estimated costs
-- **Budget Tracking** - Monitor total trip costs
-- **Responsive Design** - Works on desktop and mobile
+### Three Planning Modes
+- **💬 Chat Mode** - Have a natural conversation with WanderAI to plan your trip
+- **📝 Form Mode** - Fill out a structured form with destination, dates, budget, and travel styles
+- **🎲 Surprise Mode** - Enter your budget and vibe, let AI pick the perfect destination for you
+
+### Core Functionality
+- **AI Itinerary Generation** - Detailed day-by-day plans with activities, times, locations, and costs
+- **User Authentication** - Secure signup and login with JWT
+- **Trip Management** - Save, view, and delete your generated trips
+- **Beautiful Itinerary Display** - Clean, visual timeline format for activities
+- **Trip Sharing** - Share your itineraries via public links
+- **Budget Tracking** - Real-time cost estimates for all activities
+- **Responsive Design** - Fully mobile-friendly interface
 
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React + Vite |
+| Frontend | React 18.2 + Vite |
 | Styling | Tailwind CSS |
-| Routing | React Router |
+| Routing | React Router 6 |
 | Backend | Node.js + Express.js |
 | Database | PostgreSQL |
 | ORM | Sequelize |
-| AI | Google Gemini API |
-| Authentication | JWT (JSON Web Tokens) |
-| Frontend Hosting | Vercel |
-| Backend Hosting | Render |
+| AI | Google Gemini API (gemini-2.5-flash-lite) |
+| Authentication | JWT + bcryptjs |
+| HTTP Client | Axios |
 
 ## 📁 Project Structure
 ```
 ai-trip-planner/
-├── client/                 # React frontend
+├── client/                     # React frontend
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Page components
-│   │   ├── services/       # API call functions
-│   │   └── context/        # Auth context
-├── server/                 # Express backend
-│   ├── config/             # Database configuration
-│   ├── controllers/        # Request handlers
-│   ├── models/             # Database models
-│   ├── routes/             # API routes
-│   ├── middleware/         # Auth middleware
-│   └── services/           # AI service
-└── docs/                   # Documentation
+│   │   ├── components/        # Reusable UI components
+│   │   │   ├── Button.jsx
+│   │   │   ├── ChatMessage.jsx
+│   │   │   ├── Input.jsx
+│   │   │   ├── ItineraryDisplay.jsx
+│   │   │   ├── LoadingSpinner.jsx
+│   │   │   ├── Navbar.jsx
+│   │   │   └── TripCard.jsx
+│   │   ├── pages/             # Page components
+│   │   │   ├── Home.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── Register.jsx
+│   │   │   ├── TripPlanner.jsx
+│   │   │   ├── MyTrips.jsx
+│   │   │   ├── TripDetail.jsx
+│   │   │   └── SharedTrip.jsx
+│   │   ├── context/           # Auth context
+│   │   │   └── AuthContext.jsx
+│   │   ├── services/          # API service layer
+│   │   │   └── api.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── .env
+├── server/                     # Express backend
+│   ├── config/
+│   │   └── database.js        # Sequelize config
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── tripController.js
+│   │   └── aiController.js
+│   ├── models/                # Sequelize models
+│   │   ├── index.js
+│   │   ├── User.js
+│   │   ├── Trip.js
+│   │   └── Activity.js
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── tripRoutes.js
+│   │   └── aiRoutes.js
+│   ├── middleware/
+│   │   └── authMiddleware.js
+│   ├── services/
+│   │   └── geminiService.js   # AI integration
+│   ├── server.js
+│   ├── package.json
+│   └── .env
+└── docs/
+    ├── design-doc.md          # Design document
+    └── api-docs.md            # API documentation
 ```
 
 ## ⚙️ Local Setup Instructions
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm
-- PostgreSQL database (or use Render's free tier)
-- Google Gemini API key
+- **Node.js** (v16 or higher) - [Download](https://nodejs.org/)
+- **PostgreSQL** (v14 or higher) - [Download](https://www.postgresql.org/download/)
+- **Google Gemini API Key** - [Get one here](https://ai.google.dev/)
 
 ### 1. Clone the Repository
 ```bash
@@ -70,18 +110,44 @@ git clone https://github.com/mzj37/ai-trip-planner.git
 cd ai-trip-planner
 ```
 
-### 2. Backend Setup
+### 2. Database Setup
+
+Create a PostgreSQL database:
+```sql
+CREATE DATABASE trip_planner;
+```
+
+Or use psql:
+```bash
+psql -U postgres
+CREATE DATABASE trip_planner;
+\q
+```
+
+### 3. Backend Setup
 ```bash
 cd server
 npm install
 ```
 
-Create a `.env` file in the `server` folder:
-```
+Create a `.env` file in the `server/` directory:
+```env
+# Server Configuration
 PORT=5000
-DATABASE_URL=your_postgresql_connection_string
-JWT_SECRET=your_secret_key_here
-GEMINI_API_KEY=your_gemini_api_key
+NODE_ENV=development
+
+# Database Configuration
+DB_HOST=localhost
+DB_USER=postgres
+DB_PASSWORD=your_postgres_password
+DB_NAME=trip_planner
+DB_PORT=5432
+
+# JWT Secret (generate a random string)
+JWT_SECRET=your_super_secret_jwt_key_here
+
+# Google Gemini AI
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 Start the backend server:
@@ -89,14 +155,17 @@ Start the backend server:
 npm run dev
 ```
 
-### 3. Frontend Setup
+The backend will run on `http://localhost:5000` and automatically sync the database schema.
+
+### 4. Frontend Setup
 ```bash
-cd client
+cd ../client
 npm install
 ```
 
-Create a `.env` file in the `client` folder:
-```
+Create a `.env` file in the `client/` directory:
+```env
+# API Base URL
 VITE_API_URL=http://localhost:5000/api
 ```
 
@@ -105,27 +174,85 @@ Start the frontend:
 npm run dev
 ```
 
-### 4. Access the Application
+The frontend will run on `http://localhost:5173`
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:5000
+### 5. Access the Application
+
+Open your browser and navigate to:
+```
+http://localhost:5173
+```
 
 ## 📋 API Documentation
 
-See [docs/api-docs.md](docs/api-docs.md) for full API documentation.
+### Base URL
+```
+http://localhost:5000/api
+```
 
-### Quick Reference
+### Authentication Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/auth/register | Create new user |
-| POST | /api/auth/login | Login user |
-| GET | /api/trips | Get user's trips |
-| POST | /api/trips | Create new trip |
-| GET | /api/trips/:id | Get single trip |
-| PUT | /api/trips/:id | Update trip |
-| DELETE | /api/trips/:id | Delete trip |
-| POST | /api/ai/generate | Generate AI itinerary |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/auth/register` | Register new user | No |
+| POST | `/auth/login` | Login user | No |
+| GET | `/auth/me` | Get current user | Yes |
+
+**Request Body (Register/Login):**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+### Trip Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/trips` | Get all user's trips | Yes |
+| GET | `/trips/:id` | Get specific trip | Yes |
+| GET | `/trips/share/:shareId` | Get shared trip (public) | No |
+| POST | `/trips` | Create new trip | Yes |
+| PUT | `/trips/:id` | Update trip | Yes |
+| DELETE | `/trips/:id` | Delete trip | Yes |
+
+### AI Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/ai/chat` | Chat with AI | No |
+| POST | `/ai/form` | Generate itinerary from form | No |
+| POST | `/ai/surprise` | Get surprise destination | No |
+
+**Chat Request:**
+```json
+{
+  "message": "I want to visit Paris for 3 days",
+  "conversationHistory": []
+}
+```
+
+**Form Request:**
+```json
+{
+  "destination": "Paris, France",
+  "days": 3,
+  "budget": 1000,
+  "styles": "romantic, cultural",
+  "startDate": "2024-06-01"
+}
+```
+
+**Surprise Request:**
+```json
+{
+  "budget": 1000,
+  "vibe": "adventurous",
+  "days": 3
+}
+```
 
 ## 🗄️ Database Schema
 
@@ -134,26 +261,104 @@ See [docs/design-doc.md](docs/design-doc.md) for full ERD and user stories.
 ### Tables
 
 **Users**
-- id, email, password_hash, name, created_at
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | INTEGER | PRIMARY KEY, AUTO_INCREMENT |
+| name | VARCHAR(255) | NOT NULL |
+| email | VARCHAR(255) | UNIQUE, NOT NULL |
+| password | VARCHAR(255) | NOT NULL (hashed) |
+| createdAt | TIMESTAMP | DEFAULT NOW() |
+| updatedAt | TIMESTAMP | DEFAULT NOW() |
 
 **Trips**
-- id, user_id (FK), destination, start_date, end_date, budget, style, created_at
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | INTEGER | PRIMARY KEY, AUTO_INCREMENT |
+| userId | INTEGER | FOREIGN KEY → Users(id) |
+| destination | VARCHAR(255) | NOT NULL |
+| startDate | DATE | |
+| endDate | DATE | |
+| budget | INTEGER | |
+| styles | VARCHAR(255) | |
+| aiResponse | TEXT | |
+| shareId | UUID | UNIQUE |
+| createdAt | TIMESTAMP | DEFAULT NOW() |
+| updatedAt | TIMESTAMP | DEFAULT NOW() |
 
 **Activities**
-- id, trip_id (FK), day_number, time_slot, activity_name, description, estimated_cost, location, category
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | INTEGER | PRIMARY KEY, AUTO_INCREMENT |
+| tripId | INTEGER | FOREIGN KEY → Trips(id) |
+| dayNumber | INTEGER | |
+| timeSlot | VARCHAR(50) | |
+| activityName | VARCHAR(255) | NOT NULL |
+| description | TEXT | |
+| estimatedCost | INTEGER | |
+| location | VARCHAR(255) | |
+| category | VARCHAR(50) | meal/attraction/transport/accommodation |
+| orderIndex | INTEGER | |
+| createdAt | TIMESTAMP | DEFAULT NOW() |
 
-## 🔒 Environment Variables
+**Relationships:**
+- Users → Trips: One-to-Many (one user can have many trips)
+- Trips → Activities: One-to-Many (one trip has many activities)
 
-Never commit `.env` files! Use `.env.example` as a template.
+## 🔐 Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| PORT | Backend server port |
-| DATABASE_URL | PostgreSQL connection string |
-| JWT_SECRET | Secret for signing tokens |
-| GEMINI_API_KEY | Google Gemini API key |
-| VITE_API_URL | Backend API URL for frontend |
+**Important:** Never commit `.env` files to GitHub! They are listed in `.gitignore`.
 
-## 📄 License
+### Backend (.env in server/)
+| Variable | Description | Example |
+|----------|-------------|---------|
+| PORT | Backend server port | 5000 |
+| NODE_ENV | Environment | development |
+| DB_HOST | PostgreSQL host | localhost |
+| DB_USER | PostgreSQL username | postgres |
+| DB_PASSWORD | PostgreSQL password | your_password |
+| DB_NAME | Database name | trip_planner |
+| DB_PORT | PostgreSQL port | 5432 |
+| JWT_SECRET | Secret for JWT signing | random_string_here |
+| GEMINI_API_KEY | Google Gemini API key | your_api_key |
 
-This project is for educational purposes - CS5610 Web Development Final Project.
+### Frontend (.env in client/)
+| Variable | Description | Example |
+|----------|-------------|---------|
+| VITE_API_URL | Backend API URL | http://localhost:5000/api |
+
+## 🐛 Troubleshooting
+
+### Database Connection Issues
+```bash
+# Make sure PostgreSQL is running
+# On Mac: brew services start postgresql
+# On Windows: Start PostgreSQL service
+
+# Test connection
+psql -U postgres -d trip_planner
+```
+
+### Port Already in Use
+```bash
+# Find and kill process on port 5000
+lsof -i :5000        # Mac/Linux
+netstat -ano | findstr :5000   # Windows
+```
+
+### API Key Issues
+- Verify your Gemini API key is valid
+- Check if you've exceeded free tier limits at [Google AI Studio](https://ai.google.dev/)
+
+## 📝 License
+
+This project is for educational purposes - CS5610 Web Development Final Project at Northeastern University.
+
+## 🙏 Acknowledgments
+
+- Google Gemini AI for powering the trip planning features
+- Northeastern University CS5610 course
+- All open-source libraries used in this project
+
+---
+
+**Repository:** https://github.com/mzj37/ai-trip-planner
