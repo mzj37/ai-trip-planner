@@ -20,7 +20,7 @@ const chat = async (req, res) => {
 // Form mode
 const form = async (req, res) => {
   try {
-    const { destination, days, budget, styles, startDate, originCity } = req.body;
+    const { destination, days, budget, styles, startDate } = req.body;
     
     if (!destination || !days) {
       return res.status(400).json({ error: 'Destination and days are required' });
@@ -31,8 +31,7 @@ const form = async (req, res) => {
       days,
       budget || 'flexible',
       styles || 'general',
-      startDate,
-      originCity || 'San Francisco'
+      startDate
     );
     res.json({ itinerary });
   } catch (error) {
@@ -41,22 +40,17 @@ const form = async (req, res) => {
   }
 };
 
-// Surprise mode
+// Surprise mode - NOW RETURNS JSON DIRECTLY
 const surprise = async (req, res) => {
   try {
-    const { budget, vibe, days, originCity } = req.body;
+    const { budget, vibe, days } = req.body;
     
     if (!budget) {
       return res.status(400).json({ error: 'Budget is required' });
     }
     
     // This now returns parsed JSON object, not text
-    const itinerary = await generateSurpriseTrip(
-      budget, 
-      vibe || 'adventurous', 
-      days || 3,
-      originCity || 'San Francisco'
-    );
+    const itinerary = await generateSurpriseTrip(budget, vibe || 'adventurous', days || 3);
     
     // Return it in the same format as form mode for consistency
     res.json({ itinerary });
