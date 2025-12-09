@@ -361,4 +361,4 @@ This project is for educational purposes - CS5610 Web Development Final Project 
 
 ---
 
-**Repository:** https://github.com/mzj37/ai-trip-planner
+**Repository:** https://github.khoury.northeastern.edu/cs5610-fall2025/finalproject-ai-trip-planner.git
