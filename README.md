@@ -378,3 +378,8 @@ For testing and grading purposes, use these pre-configured accounts:
 - `test1` has pre-saved trips so you can immediately see the "My Trips" functionality
 - Other accounts are empty so you can test the full trip creation workflow
 - You can also create your own account by clicking "Sign Up"
+
+## 🚀 Live Demo
+
+- **Frontend:** https://ai-trip-planner-seven-flame.vercel.app
+- **Backend API:** https://wanderai-backend-cd44.onrender.com
