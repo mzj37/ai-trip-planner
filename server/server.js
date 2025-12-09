@@ -10,8 +10,14 @@ const aiRoutes = require('./routes/aiRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// Middleware - Updated CORS to allow Vercel frontend
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://ai-trip-planner-seven-flame.vercel.app'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
