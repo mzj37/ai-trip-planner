@@ -4,8 +4,8 @@ An intelligent travel planning application that uses Google Gemini AI to generat
 
 ## 👥 Team
 
-- Zijie Mu (mu.zi@northeastern.edu)
-- Meixuan Li (li.meixua@northeastern.edu)
+- JessicaMZJ (kylin3737@outlook.com)
+- Meixuan Li (poii091@outlook.com)
 
 ## ✨ Features
 
@@ -361,7 +361,7 @@ This project is for educational purposes - CS5610 Web Development Final Project 
 
 ---
 
-**Repository:** https://github.khoury.northeastern.edu/cs5610-fall2025/finalproject-ai-trip-planner.git
+**Repository:** [https://github.khoury.northeastern.edu/cs5610-fall2025/finalproject-ai-trip-planner.git](https://github.com/mzj37/ai-trip-planner.git)
 
 ## 🧪 Test Accounts
 
