@@ -30,14 +30,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'WanderAI API is running' });
 });
 
-// Debug endpoint - add before startServer()
-app.get('/api/debug/env', (req, res) => {
-  res.json({
-    hasGeminiKey: !!process.env.GEMINI_API_KEY,
-    keyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
-    keyPrefix: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 10) + '...' : 'missing'
-  });
-});
 
 // Start server
 const startServer = async () => {
