@@ -35,11 +35,12 @@ const TripPlanner = () => {
   const [aiResponse, setAiResponse] = useState('');
   
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hi! I'm WanderAI 🌍 Tell me about your dream trip - where, how long, budget, and what you like!" }
+    { role: 'assistant', content: "Hi! I'm WanderAI 🌍 Tell me about your dream trip - where you're traveling FROM, where you want to go, how long, budget, and what you like!" }
   ]);
   const [chatInput, setChatInput] = useState('');
   
   const [formData, setFormData] = useState({
+    originCity: '',
     destination: '',
     days: 3,
     startDate: '',
@@ -48,6 +49,7 @@ const TripPlanner = () => {
   });
   
   const [surpriseData, setSurpriseData] = useState({
+    originCity: '',
     budget: '',
     vibe: 'adventurous',
     days: 3
@@ -88,7 +90,8 @@ const TripPlanner = () => {
         days: formData.days,
         budget: formData.budget,
         styles: formData.styles.join(', '),
-        startDate: formData.startDate
+        startDate: formData.startDate,
+        originCity: formData.originCity || 'San Francisco'
       });
       setAiResponse(response.data.itinerary?.rawResponse || JSON.stringify(response.data.itinerary, null, 2));
     } catch (error) {
@@ -107,19 +110,18 @@ const TripPlanner = () => {
       const response = await aiAPI.surprise({
         budget: surpriseData.budget,
         vibe: surpriseData.vibe,
-        days: surpriseData.days
+        days: surpriseData.days,
+        originCity: surpriseData.originCity || 'San Francisco'
       });
       
       console.log('API Response:', response.data); // Debug log
       
-      // FIXED: Now expects response.data.itinerary instead of response.data.response
       const itinerary = response.data.itinerary;
       
       if (!itinerary) {
         throw new Error('No itinerary in response');
       }
       
-      // Format the JSON nicely for display
       setAiResponse(JSON.stringify(itinerary, null, 2));
     } catch (error) {
       console.error('Surprise error:', error);
@@ -136,8 +138,29 @@ const TripPlanner = () => {
     }
 
     try {
+      // Parse the AI response to get the actual destination
+      let destination = 'AI Generated Trip';
+      let parsedResponse = null;
+      
+      try {
+        parsedResponse = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse;
+        if (parsedResponse && parsedResponse.destination) {
+          destination = parsedResponse.destination;
+        }
+      } catch (e) {
+        // If parsing fails, use form destination or keep default
+        if (mode === 'form' && formData.destination) {
+          destination = formData.destination;
+        }
+      }
+      
+      // Use form destination if available, otherwise use parsed destination
+      if (mode === 'form' && formData.destination) {
+        destination = formData.destination;
+      }
+
       await tripsAPI.create({
-        destination: mode === 'form' ? formData.destination : 'AI Generated Trip',
+        destination: destination,
         startDate: formData.startDate || null,
         endDate: null,
         budget: formData.budget || surpriseData.budget || null,
@@ -147,6 +170,7 @@ const TripPlanner = () => {
       alert('Trip saved!');
       navigate('/my-trips');
     } catch (error) {
+      console.error('Save trip error:', error);
       alert('Failed to save. Please login first.');
     }
   };
@@ -225,6 +249,17 @@ const TripPlanner = () => {
             
             <form onSubmit={handleFormSubmit}>
               <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-medium mb-2">Where are you traveling FROM?</label>
+                <input
+                  type="text"
+                  value={formData.originCity}
+                  onChange={(e) => setFormData({ ...formData, originCity: e.target.value })}
+                  placeholder="San Francisco, CA (optional - defaults to SF)"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+
+              <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-medium mb-2">Where do you want to go?</label>
                 <input
                   type="text"
@@ -253,7 +288,7 @@ const TripPlanner = () => {
                     type="number"
                     value={formData.budget}
                     onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                    placeholder="500"
+                    placeholder="1000"
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
@@ -313,10 +348,21 @@ const TripPlanner = () => {
             <div className="text-center mb-6">
               <div className="text-4xl mb-2">🎲</div>
               <h2 className="text-xl font-bold text-gray-900">Surprise Me!</h2>
-              <p className="text-gray-500 text-sm">Give us your budget and vibe, we'll pick the destination!</p>
+              <p className="text-gray-500 text-sm">Give us your location, budget and vibe - we'll pick the destination!</p>
             </div>
             
             <form onSubmit={handleSurpriseSubmit}>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-medium mb-2">Where are you traveling FROM?</label>
+                <input
+                  type="text"
+                  value={surpriseData.originCity}
+                  onChange={(e) => setSurpriseData({ ...surpriseData, originCity: e.target.value })}
+                  placeholder="San Francisco, CA (optional - defaults to SF)"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-medium mb-2">Budget (USD)</label>
                 <input

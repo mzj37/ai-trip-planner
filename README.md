@@ -362,3 +362,15 @@ This project is for educational purposes - CS5610 Web Development Final Project 
 ---
 
 **Repository:** https://github.khoury.northeastern.edu/cs5610-fall2025/finalproject-ai-trip-planner.git
+
+## 🧪 Test Accounts
+
+For testing and grading purposes, use these pre-configured accounts:
+
+| Email | Password | Description |
+|-------|----------|-------------|
+| test1@northeastern.edu | Test123! | Test user with sample trips |
+| test2@northeastern.edu | Test123! | Test user (empty account) |
+| professor@northeastern.edu | Demo123! | Demo account for instructors |
+
+**Note:** You can also create your own account by clicking "Sign Up" on the homepage.

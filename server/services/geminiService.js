@@ -5,16 +5,25 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const TRAVEL_AGENT_PROMPT = `You are WanderAI, a friendly and knowledgeable travel planning assistant. Your job is to create detailed, practical travel itineraries.
 
 When generating itineraries, always:
-1. Provide specific times for each activity (e.g., "9:00 AM")
-2. Include estimated costs in USD
-3. Suggest local restaurants and specific dishes to try
-4. Consider travel time between locations
-5. Mix popular attractions with hidden gems
-6. Be mindful of the user's budget
+1. ASK for the user's origin city/location if not provided
+2. INCLUDE round-trip transportation from origin to destination in the first and last day
+3. Provide specific times for each activity (e.g., "9:00 AM")
+4. Include estimated costs in USD for EVERY activity including flights/transportation
+5. Suggest local restaurants and specific dishes to try
+6. Consider travel time between locations
+7. Mix popular attractions with hidden gems
+8. STRICTLY stay within the user's budget - calculate costs realistically
+
+CRITICAL BUDGET RULES:
+- Total cost MUST NOT exceed the user's budget
+- Include realistic flight/train costs from origin city
+- Reserve 30-40% of budget for transportation and accommodation
+- Remaining 60-70% for activities, meals, and miscellaneous
 
 For structured responses, use this JSON format:
 {
   "destination": "City, Country",
+  "originCity": "User's starting city",
   "totalDays": 3,
   "totalEstimatedCost": 500,
   "days": [
@@ -107,19 +116,34 @@ const chatWithAI = async (message, conversationHistory = []) => {
 };
 
 // Form mode - structured response
-const generateStructuredItinerary = async (destination, days, budget, styles, startDate) => {
+const generateStructuredItinerary = async (destination, days, budget, styles, startDate, originCity = null) => {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    
+    const originInfo = originCity ? `Origin city: ${originCity}` : 'Origin city: Not specified - assume major US city';
     
     const prompt = `${TRAVEL_AGENT_PROMPT}
 
 Generate a detailed ${days}-day travel itinerary for ${destination}.
-Budget: $${budget}
+${originInfo}
+Budget: $${budget} (HARD LIMIT - do not exceed)
 Travel styles: ${styles}
 ${startDate ? `Starting date: ${startDate}` : ''}
 
-CRITICAL: Return ONLY valid JSON. No markdown code blocks, no explanations, no additional text.
-Start your response with { and end with }. Do not wrap it in backticks or code blocks.`;
+CRITICAL REQUIREMENTS:
+1. MUST include round-trip transportation from origin to ${destination}
+2. First day: Include flight/train arrival with realistic cost
+3. Last day: Include return flight/train with realistic cost
+4. Total cost MUST be at or below $${budget}
+5. Break down costs realistically:
+   - Transportation (flights/trains): Estimate based on distance
+   - Accommodation: $50-150 per night depending on budget
+   - Meals: $30-60 per day
+   - Activities: Remaining budget
+6. If budget is too low for destination, choose closer/cheaper destination or reduce days
+
+Return ONLY valid JSON. No markdown code blocks, no explanations, no additional text.
+Start your response with { and end with }.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -133,35 +157,91 @@ Start your response with { and end with }. Do not wrap it in backticks or code b
 };
 
 // Surprise mode - AI picks destination (RETURNS JSON ONLY)
-const generateSurpriseTrip = async (budget, vibe, days = 3) => {
+const generateSurpriseTrip = async (budget, vibe, days = 3, originCity = 'San Francisco') => {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     
     const prompt = `${TRAVEL_AGENT_PROMPT}
 
 The user wants a SURPRISE trip! They haven't picked a destination.
-Budget: $${budget}
+Origin city: ${originCity}
+Budget: $${budget} (STRICT LIMIT)
 Vibe they want: ${vibe}
 Number of days: ${days}
 
-Pick an exciting destination that matches their vibe and budget, then create a full itinerary.
-Keep the total cost at or slightly below the budget of $${budget}.
+CRITICAL REQUIREMENTS:
+1. Pick a destination that is AFFORDABLE within the $${budget} budget
+2. Consider transportation cost from ${originCity} to destination
+3. Calculate realistic costs:
+   - Round-trip flight/train from ${originCity}: Research typical costs
+   - Accommodation: Calculate per night cost
+   - Meals: 3 meals per day at realistic prices
+   - Activities: Include entrance fees
+4. Total cost MUST NOT exceed $${budget}
+5. If budget is low (under $800), choose destinations within 3-hour flight
+6. If budget is high (over $1500), can choose international destinations
+
+Budget Breakdown Guidelines:
+- Under $500: Choose nearby cities (driving distance or short flight)
+- $500-$1000: Domestic destinations, budget airlines
+- $1000-$2000: Domestic or nearby international (Mexico, Canada, Caribbean)
+- Over $2000: International destinations
+
+MUST include in the itinerary:
+- Day 1: Flight/transportation FROM ${originCity} to destination (with cost)
+- Last day: Return flight/transportation TO ${originCity} (with cost)
+- All accommodation costs (per night)
+- All meals (breakfast, lunch, dinner)
+- All activity entrance fees
 
 CRITICAL INSTRUCTIONS:
 - Return ONLY valid JSON in the exact format specified above
-- Do NOT include any introductory text like "I've got the perfect destination..."
+- Do NOT include any introductory text
 - Do NOT wrap the JSON in markdown code blocks (no \`\`\`json)
 - Do NOT add any explanations or notes
 - Start your response with { and end with }
-- The JSON should include the surprise destination in the "destination" field
-- Set totalEstimatedCost to the sum of all activity costs (should be close to but not exceed $${budget})
+- Include "originCity" field with "${originCity}"
+- Set totalEstimatedCost to realistic sum (must be ≤ $${budget})
 
-Example of what to return:
+Example structure:
 {
-  "destination": "Kyoto, Japan",
+  "destination": "Portland, Oregon",
+  "originCity": "${originCity}",
   "totalDays": 3,
-  "totalEstimatedCost": 950,
-  "days": [...]
+  "totalEstimatedCost": 450,
+  "days": [
+    {
+      "dayNumber": 1,
+      "title": "Arrival and City Exploration",
+      "activities": [
+        {
+          "timeSlot": "8:00 AM",
+          "activityName": "Flight from ${originCity} to Portland",
+          "description": "Direct flight, 2 hours",
+          "estimatedCost": 150,
+          "location": "${originCity} Airport to Portland Airport",
+          "category": "transport"
+        },
+        ...
+      ]
+    },
+    ...
+    {
+      "dayNumber": ${days},
+      "title": "Last Day",
+      "activities": [
+        ...
+        {
+          "timeSlot": "6:00 PM",
+          "activityName": "Return flight to ${originCity}",
+          "description": "Evening flight back home",
+          "estimatedCost": 150,
+          "location": "Portland Airport to ${originCity} Airport",
+          "category": "transport"
+        }
+      ]
+    }
+  ]
 }`;
 
     const result = await model.generateContent(prompt);
