@@ -369,8 +369,12 @@ For testing and grading purposes, use these pre-configured accounts:
 
 | Email | Password | Description |
 |-------|----------|-------------|
-| test1@northeastern.edu | Test123! | Test user with sample trips |
-| test2@northeastern.edu | Test123! | Test user (empty account) |
-| professor@northeastern.edu | Demo123! | Demo account for instructors |
+| test1@northeastern.edu | Test123! | Contains sample trips (Tokyo, Portland) |
+| test2@northeastern.edu | Test123! | Empty account (test new user flow) |
+| professor@northeastern.edu | Demo123! | Empty account |
+| ta@northeastern.edu | Demo123! | Empty account |
 
-**Note:** You can also create your own account by clicking "Sign Up" on the homepage.
+**Note:** 
+- `test1` has pre-saved trips so you can immediately see the "My Trips" functionality
+- Other accounts are empty so you can test the full trip creation workflow
+- You can also create your own account by clicking "Sign Up"
