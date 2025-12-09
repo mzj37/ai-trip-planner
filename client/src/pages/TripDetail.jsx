@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { tripsAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ItineraryDisplay from '../components/ItineraryDisplay';
 
 const TripDetail = () => {
   const { id } = useParams();
@@ -70,10 +71,8 @@ const TripDetail = () => {
 
           {trip.aiResponse && (
             <div className="mt-6 pt-6 border-t border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-3">Itinerary</h3>
-              <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap text-gray-700 text-sm">
-                {trip.aiResponse}
-              </div>
+              <h3 className="font-semibold text-gray-900 mb-4">Itinerary</h3>
+              <ItineraryDisplay itinerary={trip.aiResponse} />
             </div>
           )}
         </div>

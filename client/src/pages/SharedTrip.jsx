@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { tripsAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ItineraryDisplay from '../components/ItineraryDisplay';
 
 const SharedTrip = () => {
   const { shareId } = useParams();
@@ -59,10 +60,8 @@ const SharedTrip = () => {
 
           {trip.aiResponse && (
             <div className="border-t border-gray-100 pt-6">
-              <h3 className="font-semibold text-gray-900 mb-3 text-center">Itinerary</h3>
-              <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap text-gray-700 text-sm">
-                {trip.aiResponse}
-              </div>
+              <h3 className="font-semibold text-gray-900 mb-4 text-center">Itinerary</h3>
+              <ItineraryDisplay itinerary={trip.aiResponse} />
             </div>
           )}
 
