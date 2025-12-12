@@ -30,6 +30,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'WanderAI API is running' });
 });
 
+
 // Start server
 const startServer = async () => {
   try {
