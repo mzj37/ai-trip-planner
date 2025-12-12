@@ -1,72 +1,45 @@
-const CHAT_PROMPT = `
-You are WanderAI, an AI travel planner.
-
-The user will tell you:
-- where they are traveling FROM and TO,
-- how many days,
-- their budget,
-- and their interests.
-
-Your job is to reply in natural language (NOT JSON, NOT code) with a clear,
-day-by-day trip plan that includes for EACH DAY:
-
-- a short title for the day
-- a list of 3–6 activities
-- for every activity, you MUST include:
-  • a specific time (e.g., "9:00 AM", "2:30 PM")  
-  • the location (neighborhood / area / place name)  
-  • a short description  
-  • an estimated cost (with a number, e.g., "$15" or "¥2000")
-
-Always follow this structure:
-
-1) Start with a 1–2 sentence overview of the entire trip.
-
-2) Then give the detailed plan, like:
-
-Day 1: Shibuya & Shinjuku Nightlife  
-- 9:00 AM – Breakfast at a local cafe in Shibuya (Shibuya, Tokyo) – Try a simple Japanese breakfast set. Approx. cost: $12.  
-- 11:00 AM – Visit Meiji Shrine (Harajuku, Tokyo) – Walk through the forested approach and shrine grounds. Approx. cost: $0–5.  
-- 2:30 PM – Shopping in Harajuku (Takeshita Street, Harajuku) – Explore fashion boutiques and snack stalls. Approx. cost: $20–30.  
-- 7:00 PM – Dinner and night views in Shinjuku (Omoide Yokocho, Shinjuku) – Enjoy yakitori and small izakaya dishes. Approx. cost: $25–35.  
-
-Day 2: Asakusa & Tokyo Skytree  
-- 9:00 AM – Senso-ji Temple visit (Asakusa, Tokyo) – Explore the temple and Nakamise shopping street. Approx. cost: $0–10.  
-- 12:30 PM – Tempura lunch (Asakusa area) – Enjoy a local tempura restaurant. Approx. cost: $18–25.  
-- 3:00 PM – Tokyo Skytree observation deck (Sumida, Tokyo) – City views from the tower. Approx. cost: $20–30.  
-- 8:00 PM – Sumida River walk (near Asakusa/Tokyo Skytree) – Relax with an evening riverside stroll. Approx. cost: $0–5.  
-
-3) At the end, add:
-- A short summary of how the plan fits the budget and time.
-- 1–2 practical tips (e.g., transit pass, reservations, local etiquette).
-
-Formatting rules:
-- Use headings like "Day 1:", "Day 2:".
-- Use simple bullet lines starting with a dash (-) for each activity.
-- DO NOT use JSON, DO NOT use curly braces, DO NOT use backticks or code blocks.
-- Keep the tone friendly, but focus on clear times, places, and costs.
-`;
-
-
-
-
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// API Key rotation - add multiple keys to avoid quota issues
+const API_KEYS = [
+  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_3
+].filter(Boolean); // Remove undefined keys
+
+let currentKeyIndex = 0;
+
+const getNextKey = () => {
+  if (API_KEYS.length === 0) {
+    throw new Error('No Gemini API keys configured');
+  }
+  const key = API_KEYS[currentKeyIndex];
+  currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+  return key;
+};
 
 const TRAVEL_AGENT_PROMPT = `You are WanderAI, a friendly and knowledgeable travel planning assistant. Your job is to create detailed, practical travel itineraries.
 
 When generating itineraries, always:
-1. Provide specific times for each activity (e.g., "9:00 AM")
-2. Include estimated costs in USD
-3. Suggest local restaurants and specific dishes to try
-4. Consider travel time between locations
-5. Mix popular attractions with hidden gems
-6. Be mindful of the user's budget
+1. ASK for the user's origin city/location if not provided
+2. INCLUDE round-trip transportation from origin to destination in the first and last day
+3. Provide specific times for each activity (e.g., "9:00 AM")
+4. Include estimated costs in USD for EVERY activity including flights/transportation
+5. Suggest local restaurants and specific dishes to try
+6. Consider travel time between locations
+7. Mix popular attractions with hidden gems
+8. STRICTLY stay within the user's budget - calculate costs realistically
+
+CRITICAL BUDGET RULES:
+- Total cost MUST NOT exceed the user's budget
+- Include realistic flight/train costs from origin city
+- Reserve 30-40% of budget for transportation and accommodation
+- Remaining 60-70% for activities, meals, and miscellaneous
 
 For structured responses, use this JSON format:
 {
   "destination": "City, Country",
+  "originCity": "User's starting city",
   "totalDays": 3,
   "totalEstimatedCost": 500,
   "days": [
@@ -89,36 +62,54 @@ For structured responses, use this JSON format:
 
 For chat responses, be conversational but still organized. Use emojis sparingly to keep it friendly.`;
 
-// Helper function to extract JSON from text (handles markdown code blocks)
+// Helper function to extract JSON from text
 const extractJSON = (text) => {
   try {
-    // First try to parse directly
     return JSON.parse(text);
   } catch (e) {
-    // If that fails, try to extract from markdown code block
-    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) ||
-      text.match(/```\s*([\s\S]*?)\s*```/) ||
-      text.match(/\{[\s\S]*\}/);
-
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || 
+                      text.match(/```\s*([\s\S]*?)\s*```/) ||
+                      text.match(/\{[\s\S]*\}/);
+    
     if (jsonMatch) {
       const jsonStr = jsonMatch[1] || jsonMatch[0];
       return JSON.parse(jsonStr);
     }
-
+    
     throw new Error('No valid JSON found in response');
   }
 };
 
+// Retry logic for quota errors
+const retryWithNextKey = async (fn, maxRetries = API_KEYS.length) => {
+  let lastError;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      // If quota exceeded, try next key
+      if (error.status === 429 && i < maxRetries - 1) {
+        console.log(`Quota exceeded on key ${i + 1}, trying next key...`);
+        continue;
+      }
+      throw error;
+    }
+  }
+  
+  throw lastError;
+};
+
 // Chat mode - conversational
 const chatWithAI = async (message, conversationHistory = []) => {
-  try {
+  return retryWithNextKey(async () => {
+    const genAI = new GoogleGenerativeAI(getNextKey());
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
-    // Filter out assistant messages at the start - Gemini requires first message to be from user
-    // Also convert our format to Gemini's format
+    
     const filteredHistory = [];
     let foundFirstUser = false;
-
+    
     for (const msg of conversationHistory) {
       if (msg.role === 'user') {
         foundFirstUser = true;
@@ -130,104 +121,89 @@ const chatWithAI = async (message, conversationHistory = []) => {
         });
       }
     }
-
-    // Build the full prompt with system instructions
-    const fullMessage = CHAT_PROMPT + "\n\nUser: " + message;
-
-
-    // If no valid history, just do a simple generation
+    
+    const fullMessage = TRAVEL_AGENT_PROMPT + "\n\nUser request: " + message;
+    
     if (filteredHistory.length === 0) {
       const result = await model.generateContent(fullMessage);
       const response = await result.response;
       return response.text();
     }
-
-    // Otherwise use chat with history
+    
     const chat = model.startChat({
       history: filteredHistory,
       generationConfig: {
         maxOutputTokens: 2048,
       },
     });
-
+    
     const result = await chat.sendMessage(fullMessage);
     const response = await result.response;
     return response.text();
-  } catch (error) {
-    console.error('Gemini chat error:', error);
-    throw error;
-  }
+  });
 };
 
 // Form mode - structured response
-const generateStructuredItinerary = async (destination, days, budget, styles, startDate) => {
-  try {
+const generateStructuredItinerary = async (destination, days, budget, styles, startDate, originCity = null) => {
+  return retryWithNextKey(async () => {
+    const genAI = new GoogleGenerativeAI(getNextKey());
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
+    
+    const originInfo = originCity ? `Origin city: ${originCity}` : 'Origin city: Not specified - assume major US city';
+    
     const prompt = `${TRAVEL_AGENT_PROMPT}
 
 Generate a detailed ${days}-day travel itinerary for ${destination}.
-Budget: $${budget}
+${originInfo}
+Budget: $${budget} (HARD LIMIT - do not exceed)
 Travel styles: ${styles}
 ${startDate ? `Starting date: ${startDate}` : ''}
 
-CRITICAL: Return ONLY valid JSON. No markdown code blocks, no explanations, no additional text.
-Start your response with { and end with }. Do not wrap it in backticks or code blocks.`;
+CRITICAL REQUIREMENTS:
+1. MUST include round-trip transportation from origin to ${destination}
+2. First day: Include flight/train arrival with realistic cost
+3. Last day: Include return flight/train with realistic cost
+4. Total cost MUST be at or below $${budget}
+5. Break down costs realistically
+
+Return ONLY valid JSON. No markdown code blocks, no explanations.
+Start your response with { and end with }.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-
+    
     return extractJSON(text);
-  } catch (error) {
-    console.error('Gemini structured error:', error);
-    throw error;
-  }
+  });
 };
 
-// Surprise mode - AI picks destination (RETURNS JSON ONLY)
-const generateSurpriseTrip = async (budget, vibe, days = 3) => {
-  try {
+// Surprise mode
+const generateSurpriseTrip = async (budget, vibe, days = 3, originCity = 'San Francisco') => {
+  return retryWithNextKey(async () => {
+    const genAI = new GoogleGenerativeAI(getNextKey());
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
+    
     const prompt = `${TRAVEL_AGENT_PROMPT}
 
-The user wants a SURPRISE trip! They haven't picked a destination.
-Budget: $${budget}
-Vibe they want: ${vibe}
-Number of days: ${days}
+The user wants a SURPRISE trip!
+Origin city: ${originCity}
+Budget: $${budget} (STRICT LIMIT)
+Vibe: ${vibe}
+Days: ${days}
 
-Pick an exciting destination that matches their vibe and budget, then create a full itinerary.
-Keep the total cost at or slightly below the budget of $${budget}.
+Pick an affordable destination within budget that matches their vibe.
+MUST include round-trip transportation from ${originCity}.
 
-CRITICAL INSTRUCTIONS:
-- Return ONLY valid JSON in the exact format specified above
-- Do NOT include any introductory text like "I've got the perfect destination..."
-- Do NOT wrap the JSON in markdown code blocks (no \`\`\`json)
-- Do NOT add any explanations or notes
-- Start your response with { and end with }
-- The JSON should include the surprise destination in the "destination" field
-- Set totalEstimatedCost to the sum of all activity costs (should be close to but not exceed $${budget})
-
-Example of what to return:
-{
-  "destination": "Kyoto, Japan",
-  "totalDays": 3,
-  "totalEstimatedCost": 950,
-  "days": [...]
-}`;
+Return ONLY valid JSON. No markdown, no extra text.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-
-    console.log('Raw AI response:', text.substring(0, 200)); // Debug log
-
+    
+    console.log('Raw AI response:', text.substring(0, 200));
+    
     return extractJSON(text);
-  } catch (error) {
-    console.error('Gemini surprise error:', error);
-    throw error;
-  }
+  });
 };
 
 module.exports = { chatWithAI, generateStructuredItinerary, generateSurpriseTrip };
