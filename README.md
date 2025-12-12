@@ -4,8 +4,8 @@ An intelligent travel planning application that uses Google Gemini AI to generat
 
 ## 👥 Team
 
-- JessicaMZJ (kylin3737@outlook.com)
-- Meixuan Li (poii091@outlook.com)
+- Zijie Mu (mu.zi@northeastern.edu)
+- Meixuan Li (li,meixua@northeastern.edu)
 
 ## ✨ Features
 
