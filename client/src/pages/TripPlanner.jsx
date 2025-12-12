@@ -114,7 +114,7 @@ const TripPlanner = () => {
         originCity: surpriseData.originCity || 'San Francisco'
       });
       
-      console.log('API Response:', response.data); // Debug log
+      console.log('API Response:', response.data);
       
       const itinerary = response.data.itinerary;
       
@@ -138,23 +138,28 @@ const TripPlanner = () => {
     }
 
     try {
-      // Parse the AI response to get the actual destination
       let destination = 'AI Generated Trip';
-      let parsedResponse = null;
       
+      // Try to parse AI response to get real destination
       try {
-        parsedResponse = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse;
-        if (parsedResponse && parsedResponse.destination) {
-          destination = parsedResponse.destination;
+        const parsed = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse;
+        if (parsed && parsed.destination) {
+          destination = parsed.destination;
         }
       } catch (e) {
-        // If parsing fails, use form destination or keep default
+        // If parsing fails (like in chat mode), use form destination or ask user
         if (mode === 'form' && formData.destination) {
           destination = formData.destination;
+        } else if (mode === 'chat') {
+          // Prompt user to enter trip name for chat mode
+          const userInput = prompt('Enter a name for this trip (e.g., "Tokyo Adventure"):');
+          if (userInput && userInput.trim()) {
+            destination = userInput.trim();
+          }
         }
       }
       
-      // Use form destination if available, otherwise use parsed destination
+      // Use form destination if available
       if (mode === 'form' && formData.destination) {
         destination = formData.destination;
       }
